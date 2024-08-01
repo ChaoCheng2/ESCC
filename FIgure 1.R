@@ -45,19 +45,17 @@ output_path = 'Figure_output/Figure1_original'
 dir.create(file.path(workdir,output_path))
 
 # --------------------------------------------------------------------------------
-##导入RDS####
+
 All_cell_post_harmony <- readRDS("./Final_RDS/All_cells_after_harmony_10.13.rds")
-Tcell_srt <- readRDS("./Final_RDS/亚群分析_T_cell_final_3.31(加cytotrace及功能评分).rds")
+Tcell_srt <- readRDS("./Final_RDS/T_cell.rds")
 T_cell_no_NK <- readRDS("./Final_RDS/T_cell_no_NK_updated_8.8.rds")
 
 # -------------------------------------------------------------------------------
-# 测试
-# 日期：10月8日
 gene_test = c("IGFBP5","ACKR1","FABP5","SLCO2A1","KCNIP4","CD74","HLA-DRA","PLAT","TFF3","HLA-DRB1","FABP4","SELE","MT2A","LYZ","FLRT2","ANO2","ADIRF","ZNF385D","NR2F2","IFI30","S100A10","S100A6","GPM6A","NRG3","VCAM1","HLA-DQB1","NNMT","CEBPD")
 png('gene.test.png',width = 1200,height = 1500, res = 100)
 FeaturePlot(All_cell_post_harmony, features = gene_test,raster=FALSE)
 dev.off()
-# 计算均值
+
 All_cell_post_harmony$gene_test_mean = colMeans(as.matrix(All_cell_post_harmony@assays[['RNA']]@data[gene_test,]))
 
 png('gene.test2.png',width = 500,height = 400, res = 100)
@@ -65,8 +63,7 @@ FeaturePlot(All_cell_post_harmony, features = 'gene_test_mean',raster=FALSE)
 dev.off()
 
 ##----------------------------------------------------------
-# 测试
-# 日期：11.19
+
 dir.create('Test')
 gene_test = read.csv('/Volumes/Camellia/Project_ESCC/DATA/endo_c5_sigs_1.csv')
 head(gene_test)
@@ -82,7 +79,6 @@ png('./Test/gene.test_11.19_3.png',width = 4000,height = 3000, res = 200)
 FeaturePlot(All_cell_post_harmony, features = gene[61:90],raster=FALSE,ncol = 6)
 dev.off()
 
-# 计算均值
 All_cell_post_harmony$gene_test_mean = colMeans(as.matrix(All_cell_post_harmony@assays[['RNA']]@data[gene,]))
 
 png('./Test/Mean_2.png',width = 500,height = 400, res = 100)
@@ -90,7 +86,6 @@ FeaturePlot(All_cell_post_harmony, features = 'gene_test_mean',raster=FALSE)
 dev.off()
 
 # ------------------------------------
-# 提取内皮细胞
 endo = subset(All_cell_post_harmony,cell.type == 'Endothelial cell')
 
 pdf('./Test/cellType.pdf', width =10, height=10)
@@ -135,7 +130,6 @@ FeaturePlot(endo, features = gene[61:90],raster=FALSE,ncol = 6)
 dev.off()
 
 #-----------------------------------------
-# 计算不同cluster中NR和R的差异
 
 library(ggplot2)
  
@@ -178,7 +172,7 @@ dev.off()
 
 # -----------------------------------------
 # Figure 1A
-# 流程图
+#study design
 
 
 # --------------------------------------------------------------------------------
@@ -207,7 +201,6 @@ dev.off()
 
 # --------------------------------------------------------------------------------
 # Figure 1D
-# 治疗前PDCD1表达在R与NR的比较####
 T_pre <- subset(Tcell_srt,time=="Pre_T")
 IL7R_exp = FetchData(T_pre, vars="PDCD1")
 IL7R_exp$sample = T_pre@meta.data[rownames(IL7R_exp), "orig.ident"]
@@ -236,7 +229,6 @@ P1 = ggplot(data = IL7R_exp_mean, aes(x=response, y=PDCD1))+
         axis.line.y = element_line(),
         axis.line = element_line(colour = "black"))
 
-#表达PD1的细胞比例比较#
 seurat_meta = T_pre@meta.data
 seurat_meta$Exp = FetchData(T_pre, vars = "PDCD1")
 # counts of exp > 0
@@ -293,7 +285,7 @@ P1+P2+P3
 dev.off()
 
 # --------------------------------------------------------------------------------
-# Figure 1F 基于Cytosig筛选细胞因子
+# Figure 1F
 source('Code/Function/ccGene.R')
 tmeta = Tcell_srt@meta.data[,c('orig.ident', 'response', 'time')]
 tmeta = tmeta[!duplicated(tmeta),]
@@ -314,7 +306,7 @@ plodata[, c('orig.ident','response', 'time')] = tmeta[rownames(cytosig), c('orig
 plodata = plodata %>% 
   filter(orig.ident!='EC_07_post_T') #%>%
 
-# 基于相关性排序
+
 cor_res = c()
 for(cyto in colnames(cytosig)){
   cor_res = rbind(cor_res, c(cyto,cor(plodata[, cyto], plodata$Proliferation)))
@@ -324,7 +316,6 @@ colnames(cor_res) = c('cytosig', 'cor')
 cor_res$cor = as.numeric(cor_res$cor)
 cor_res = cor_res[order(cor_res$cor),]
  
-# 点图
 # add zzm score
 new_Tcell_srt = AddModuleScore(Tcell_srt, features = list('cc_score'=ccgene_zzm), name='cc_score')
 cc_exp_score = new_Tcell_srt@meta.data %>%
@@ -420,8 +411,7 @@ dev.off()
 
 
 # ----------------------------------------------------------------------------- 
-####Figure1G TRAIL和TRAIL的density plot#######
-# 读入CytoSig信息
+####Figure1G #######
 cyto_res = t(read.table('./Final_RDS/Cytoseq_output/new_updated/output_cell_expand_noNK.Zscore', sep='\t'))
 cyto_res_sample = t(read.table('./Final_RDS/Cytoseq_output/new_updated/output_sample_expand_noNK.Zscore', sep='\t'))
 cyto_res_TRAIL = cyto_res_sample[, c('TRAIL')]
@@ -477,7 +467,7 @@ save2 = plodata %>%
             TRAIL=cor(TRAIL, proliferation))
 save2[is.na(save2)] = 0
 
-# 宽数据转长数据
+#
 library(tidyr)
 saveData_long <- gather(save2[,c('sample','PDCD1','TRAIL')],key = 'gene',value = 'sample')
 
@@ -499,18 +489,17 @@ dev.off()
 
 
 # ------------------------------------------------------------------------------
-# Figure1H-治疗前R和NR中TRAIL的比较-单细胞####
-# TRAIL样本水平比较
+# Figure1H####
 # cytoseq
 output_dir = './Final_RDS/Cytoseq_output/new_updated/' # output path
 
 # draw
-#样本水平##
+
 cyto_res = t(read.table(paste0(output_dir, 'output_sample_expand_noNK.Zscore'), sep='\t'))
 TRAIL_sample <- cyto_res[,"TRAIL"]
 TRAIL_sample <- as.data.frame(TRAIL_sample)
 
-#分组信息
+
 TRAIL_exp = FetchData(T_cell_no_NK, vars="TNFSF10")
 TRAIL_exp$sample = T_cell_no_NK@meta.data[rownames(TRAIL_exp), "orig.ident"]
 TRAIL_exp$time = T_cell_no_NK@meta.data[rownames(TRAIL_exp), "time"]
@@ -530,7 +519,7 @@ TRAIL_sample_pre <- subset(TRAIL_sample_all_no_16pre,time=="Pre_T")
 Figure1F <- TRAIL_sample_pre
 Figure1F$Method = 'Single Cell'
 
-###Figure1G-治疗前R和NR中TRAIL的比较-BULK####
+###Figure1G-BULK####
 library(clusterProfiler)
 library(fgsea)
 library(forcats)
@@ -579,7 +568,7 @@ names(genelist) = rownames(allDiff)
 
 ####
 # Cytosig TRAIL gene
-TRAILmark <- read.gmt('./Final_RDS/TRAIL相关通路.gmt')
+TRAILmark <- read.gmt('./Final_RDS/TRAIL_pathway.gmt')
 TRAILmark = TRAILmark %>% split(.$term) %>% lapply('[[',2)
 TRAILmark_gene = c(#TRAILmark$GOBP_TRAIL_ACTIVATED_APOPTOTIC_SIGNALING_PATHWAY,
   TRAILmark$PID_TRAIL_PATHWAY,
@@ -600,7 +589,7 @@ term2gene = subset(term2gene, gene!='IKBKB')
 term2gene = subset(term2gene, gene!='NFKB2')
 term2gene = subset(term2gene, gene!='CXCL8')
 term2gene = subset(term2gene, gene!='TRIB1')
-# bulk RNA-seq 定量TRAIL activity进行治疗前R vs. NR比较
+
 pre_bulk_data = logCPM[term2gene$gene, ]
 
 library(reshape2)
